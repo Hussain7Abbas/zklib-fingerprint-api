@@ -1,5 +1,9 @@
 import dayjs from 'dayjs';
-import type { NextFunction, Request, Response } from 'express';
+import type {
+  NextFunction,
+  Request,
+  Response,
+} from 'express';
 import {
   type DeviceConnectionParams,
   deviceConnectionSchema,
@@ -29,7 +33,9 @@ export class AttendanceController {
   /**
    * Extract device connection parameters from request
    */
-  private getDeviceParams(req: Request): DeviceConnectionParams {
+  private getDeviceParams(
+    req: Request
+  ): DeviceConnectionParams {
     // Try to get params from query first, then from body
     const params = { ...req.query, ...req.body };
     const result = deviceConnectionSchema.safeParse(params);
@@ -45,8 +51,13 @@ export class AttendanceController {
   /**
    * Create ZK service instance with request params or defaults
    */
-  private createZKService(deviceParams: DeviceConnectionParams): ZKService {
-    return ZKService.createWithConnection(deviceParams.ip, deviceParams.port);
+  private createZKService(
+    deviceParams: DeviceConnectionParams
+  ): ZKService {
+    return ZKService.createWithConnection(
+      deviceParams.ip,
+      deviceParams.port
+    );
   }
 
   /**
@@ -92,11 +103,13 @@ export class AttendanceController {
    *               data:
    *                 - userSn: 6550
    *                   deviceUserId: "5"
+   *                   username: "John Doe"
    *                   recordTime: "2025-06-07T10:21:02.000Z"
    *                   ip: "192.168.0.201"
    *                   attTime: "2025-06-07T10:21:02.000Z"
    *                 - userSn: 6551
    *                   deviceUserId: "5"
+   *                   username: "John Doe"
    *                   recordTime: "2025-06-07T10:22:14.000Z"
    *                   ip: "192.168.0.201"
    *                   attTime: "2025-06-07T10:22:14.000Z"
@@ -115,10 +128,15 @@ export class AttendanceController {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  async getAttendances(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getAttendances(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       // Validate query parameters
-      const queryValidation = getAttendancesSchema.safeParse(req.query);
+      const queryValidation =
+        getAttendancesSchema.safeParse(req.query);
       if (!queryValidation.success) {
         res.status(400).json({
           success: false,
@@ -132,18 +150,40 @@ export class AttendanceController {
         return;
       }
 
-      const { fromDate, toDate, ip, port } = queryValidation.data;
+      const { fromDate, toDate, ip, port } =
+        queryValidation.data;
       const zkService = this.createZKService({ ip, port });
 
       await zkService.connect();
-      const attendances = await zkService.getAttendances(fromDate, toDate);
+
+      // Fetch both attendances and users
+      const users = await zkService.getUsers();
+      const attendances = await zkService.getAttendances(
+        fromDate,
+        toDate
+      );
+
       await zkService.disconnect();
 
-      // Format the response data
-      const formattedAttendances = attendances.map((attendance) => ({
-        ...attendance,
-        attTime: dayjs(attendance.recordTime).toISOString(),
-      }));
+      console.log(users);
+      // Create a mapping object with deviceUserId as key and username as value
+      const userMapping: { [key: string]: string } = {};
+      for (const user of users) {
+        userMapping[user.userid] = user.name;
+      }
+
+      // Format the response data and add username
+      const formattedAttendances = attendances.map(
+        (attendance) => ({
+          ...attendance,
+          username:
+            userMapping[attendance.deviceUserId] ||
+            'Unknown',
+          attTime: dayjs(
+            attendance.recordTime
+          ).toISOString(),
+        })
+      );
 
       res.status(200).json({
         success: true,
@@ -229,10 +269,15 @@ export class AttendanceController {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  async getAttendanceSummary(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getAttendanceSummary(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       // Validate query parameters
-      const queryValidation = getAttendancesSchema.safeParse(req.query);
+      const queryValidation =
+        getAttendancesSchema.safeParse(req.query);
       if (!queryValidation.success) {
         res.status(400).json({
           success: false,
@@ -246,27 +291,37 @@ export class AttendanceController {
         return;
       }
 
-      const { fromDate, toDate, ip, port } = queryValidation.data;
+      const { fromDate, toDate, ip, port } =
+        queryValidation.data;
       const zkService = this.createZKService({ ip, port });
 
       await zkService.connect();
-      const attendances = await zkService.getAttendances(fromDate, toDate);
+      const attendances = await zkService.getAttendances(
+        fromDate,
+        toDate
+      );
       await zkService.disconnect();
 
       // Calculate summary statistics
-      const uniqueUsers = new Set(attendances.map((att) => att.deviceUserId)).size;
+      const uniqueUsers = new Set(
+        attendances.map((att) => att.deviceUserId)
+      ).size;
 
       // Group attendances by date
       const attendancesByDate = attendances.reduce(
         (acc, attendance) => {
-          const date = dayjs(attendance.recordTime).format('YYYY-MM-DD');
+          const date = dayjs(attendance.recordTime).format(
+            'YYYY-MM-DD'
+          );
           acc[date] = (acc[date] || 0) + 1;
           return acc;
         },
         {} as Record<string, number>
       );
 
-      const attendancesByDateArray = Object.entries(attendancesByDate)
+      const attendancesByDateArray = Object.entries(
+        attendancesByDate
+      )
         .map(([date, count]) => ({ date, count }))
         .sort((a, b) => a.date.localeCompare(b.date));
 
@@ -339,7 +394,11 @@ export class AttendanceController {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  async clearAttendanceLogs(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async clearAttendanceLogs(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const deviceParams = this.getDeviceParams(req);
       const zkService = this.createZKService(deviceParams);
