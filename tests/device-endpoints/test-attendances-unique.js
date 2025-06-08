@@ -39,7 +39,7 @@ async function testUniqueAttendances() {
         }
 
         // Validate date format (should be YYYY-MM-DD)
-        const dateFormat = /^\d{2}-\d{2}-\d{2}$/;
+        const dateFormat = /^\d{4}-\d{2}-\d{2}$/;
         if (dateFormat.test(firstRecord.date)) {
           console.log('✅ Date format is correct (YYYY-MM-DD)');
         } else {
@@ -96,8 +96,49 @@ async function testUniqueAttendances() {
       console.log(`   Error: ${JSON.stringify(filterData, null, 2)}`);
     }
 
+    // Test with timezone parameter
+    console.log('\n3. Testing GET /attendances-unique with timezone parameter');
+    const timezoneResponse = await fetch(
+      `${BASE_URL}/attendances-unique?timezone=America/New_York`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+    const timezoneData = await timezoneResponse.json();
+
+    if (timezoneResponse.ok && timezoneData.success) {
+      console.log('✅ Timezone formatting working');
+      console.log(`   Found ${timezoneData.meta.total} records with timezone formatting`);
+
+      if (timezoneData.data.length > 0) {
+        const sample = timezoneData.data[0];
+        console.log('   Sample timezone-formatted record:');
+        console.log(`     User: ${sample.username}, Date: ${sample.date}`);
+        console.log(`     Check-in: ${sample.checkIn}, Check-out: ${sample.checkOut}`);
+
+        // Validate time format (should be HH:mm:ss)
+        const timeFormat = /^\d{2}:\d{2}:\d{2}$/;
+        if (timeFormat.test(sample.checkIn) && timeFormat.test(sample.checkOut)) {
+          console.log('✅ Time format is correct (HH:mm:ss)');
+        } else {
+          console.log(`⚠️  Time format incorrect. Expected HH:mm:ss, got checkIn: ${sample.checkIn}, checkOut: ${sample.checkOut}`);
+        }
+
+        // Check if timezone is included in meta
+        if (timezoneData.meta.timezone) {
+          console.log(`✅ Timezone included in response meta: ${timezoneData.meta.timezone}`);
+        } else {
+          console.log('⚠️  Timezone not included in response meta');
+        }
+      }
+    } else {
+      console.log('❌ Timezone formatting failed');
+      console.log(`   Error: ${JSON.stringify(timezoneData, null, 2)}`);
+    }
+
     // Test comparison with regular attendances endpoint
-    console.log('\n3. Comparing with regular /attendances endpoint');
+    console.log('\n4. Comparing with regular /attendances endpoint');
     const regularResponse = await fetch(`${BASE_URL}/attendances`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },

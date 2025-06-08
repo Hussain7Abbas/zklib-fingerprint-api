@@ -1,4 +1,6 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import type {
   NextFunction,
   Request,
@@ -8,6 +10,7 @@ import {
   type DeviceConnectionParams,
   deviceConnectionSchema,
   getAttendancesSchema,
+  getUniqueAttendancesSchema,
 } from '../schemas/validationSchemas';
 import { ZKService } from '../services/zkService';
 
@@ -22,6 +25,10 @@ export class AttendanceController {
   private zkService: ZKService;
 
   constructor() {
+    // Initialize dayjs plugins
+    dayjs.extend(utc);
+    dayjs.extend(timezone);
+
     this.zkService = new ZKService(
       process.env.ZK_DEVICE_IP || '192.168.1.201',
       Number.parseInt(process.env.ZK_DEVICE_PORT || '4370'),
@@ -378,6 +385,12 @@ export class AttendanceController {
    *         schema:
    *           type: number
    *         description: Device port (optional, defaults to ZK_DEVICE_PORT env var)
+   *       - in: query
+   *         name: timezone
+   *         schema:
+   *           type: string
+   *         description: IANA timezone for formatting check-in/check-out times (e.g., America/New_York, UTC). If provided, times will be formatted as HH:mm:ss in the specified timezone, otherwise as ISO timestamps.
+   *         example: "America/New_York"
    *     responses:
    *       200:
    *         description: Successfully retrieved unique daily attendances
@@ -391,11 +404,12 @@ export class AttendanceController {
    *                 - userSn: 6550
    *                   deviceUserId: "5"
    *                   username: "John Doe"
-   *                   date: "25-06-07"
-   *                   checkIn: "2025-06-07T08:30:00.000Z"
-   *                   checkOut: "2025-06-07T17:30:00.000Z"
+   *                   date: "2025-06-07"
+   *                   checkIn: "08:30:00"
+   *                   checkOut: "17:30:00"
    *               meta:
    *                 total: 1
+   *                 timezone: "America/New_York"
    *       400:
    *         description: Invalid query parameters
    *         content:
@@ -417,7 +431,7 @@ export class AttendanceController {
     try {
       // Validate query parameters
       const queryValidation =
-        getAttendancesSchema.safeParse(req.query);
+        getUniqueAttendancesSchema.safeParse(req.query);
       if (!queryValidation.success) {
         res.status(400).json({
           success: false,
@@ -431,7 +445,7 @@ export class AttendanceController {
         return;
       }
 
-      const { fromDate, toDate, ip, port } =
+      const { fromDate, toDate, ip, port, timezone } =
         queryValidation.data;
       const zkService = this.createZKService({ ip, port });
 
@@ -486,15 +500,23 @@ export class AttendanceController {
         const checkOut =
           userAttendances[userAttendances.length - 1];
 
+        // Format times based on timezone parameter
+        const formatTime = (timestamp: string) => {
+          if (timezone) {
+            return dayjs(timestamp)
+              .tz(timezone)
+              .format('HH:mm:ss');
+          }
+          return dayjs(timestamp).toISOString();
+        };
+
         return {
           userSn: checkIn.userSn,
           deviceUserId: deviceUserId,
           username: userMapping[deviceUserId] || 'Unknown',
           date: date,
-          checkIn: dayjs(checkIn.recordTime).toISOString(),
-          checkOut: dayjs(
-            checkOut.recordTime
-          ).toISOString(),
+          checkIn: formatTime(checkIn.recordTime),
+          checkOut: formatTime(checkOut.recordTime),
         };
       });
 
@@ -516,6 +538,9 @@ export class AttendanceController {
           }),
           ...(toDate && {
             toDate: dayjs(toDate).toISOString(),
+          }),
+          ...(timezone && {
+            timezone: timezone,
           }),
         },
       });

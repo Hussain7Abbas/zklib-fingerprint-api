@@ -131,7 +131,8 @@ http://localhost:3000/api/device
   - `toDate` (optional): End date for filtering (ISO 8601 format)
   - `ip` (optional): Device IP address (defaults to ZK_DEVICE_IP env var)
   - `port` (optional): Device port (defaults to ZK_DEVICE_PORT env var)
-- **Response**:
+  - `timezone` (optional): IANA timezone for formatting check-in/check-out times (e.g., America/New_York, UTC). If provided, times will be formatted as HH:mm:ss, otherwise as ISO timestamps.
+- **Response (without timezone):**
 
 ```json
 {
@@ -150,6 +151,28 @@ http://localhost:3000/api/device
     "total": 1,
     "fromDate": "2025-01-01T00:00:00.000Z",
     "toDate": "2025-12-31T23:59:59.999Z"
+  }
+}
+```
+
+**Response (with timezone=America/New_York):**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "userSn": 6550,
+      "deviceUserId": "5",
+      "username": "John Doe",
+      "date": "2025-06-07",
+      "checkIn": "08:30:00",
+      "checkOut": "17:30:00"
+    }
+  ],
+  "meta": {
+    "total": 1,
+    "timezone": "America/New_York"
   }
 }
 ```
@@ -252,8 +275,8 @@ interface UniqueAttendance {
   deviceUserId: string; // Device user ID
   username: string; // User name
   date: string; // Date in YYYY-MM-DD format
-  checkIn: string; // First attendance record time for the day (ISO timestamp)
-  checkOut: string; // Last attendance record time for the day (ISO timestamp)
+  checkIn: string; // First attendance record time for the day (ISO timestamp or HH:mm:ss if timezone provided)
+  checkOut: string; // Last attendance record time for the day (ISO timestamp or HH:mm:ss if timezone provided)
 }
 ```
 

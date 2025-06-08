@@ -265,7 +265,7 @@ GET /api/attendances?ip=192.168.1.100&port=4370&fromDate=2024-01-01T00:00:00.000
 GET /api/attendances-unique?fromDate=2024-01-01T00:00:00.000Z&toDate=2024-12-31T23:59:59.999Z
 ```
 
-**Response:**
+**Response (without timezone):**
 
 ```json
 {
@@ -275,7 +275,7 @@ GET /api/attendances-unique?fromDate=2024-01-01T00:00:00.000Z&toDate=2024-12-31T
       "userSn": 6550,
       "deviceUserId": "5",
       "username": "John Doe",
-      "date": "24-01-15",
+      "date": "2024-01-15",
       "checkIn": "2024-01-15T08:30:00.000Z",
       "checkOut": "2024-01-15T17:30:00.000Z"
     }
@@ -284,6 +284,34 @@ GET /api/attendances-unique?fromDate=2024-01-01T00:00:00.000Z&toDate=2024-12-31T
     "total": 1,
     "fromDate": "2024-01-01T00:00:00.000Z",
     "toDate": "2024-12-31T23:59:59.999Z"
+  }
+}
+```
+
+**With timezone parameter:**
+
+```http
+GET /api/attendances-unique?timezone=America/New_York
+```
+
+**Response (with timezone):**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "userSn": 6550,
+      "deviceUserId": "5",
+      "username": "John Doe",
+      "date": "2024-01-15",
+      "checkIn": "08:30:00",
+      "checkOut": "17:30:00"
+    }
+  ],
+  "meta": {
+    "total": 1,
+    "timezone": "America/New_York"
   }
 }
 ```

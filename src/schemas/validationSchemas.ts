@@ -108,6 +108,51 @@ export const getAttendancesSchema = z
     }
   );
 
+// Query parameters for unique attendances (includes timezone formatting)
+export const getUniqueAttendancesSchema = z
+  .object({
+    fromDate: z
+      .string()
+      .datetime({
+        message:
+          'fromDate must be a valid ISO 8601 datetime string',
+      })
+      .optional()
+      .transform((val) =>
+        val ? new Date(val) : undefined
+      ),
+    toDate: z
+      .string()
+      .datetime({
+        message:
+          'toDate must be a valid ISO 8601 datetime string',
+      })
+      .optional()
+      .transform((val) =>
+        val ? new Date(val) : undefined
+      ),
+    timezone: z
+      .string()
+      .regex(/^[A-Za-z]+\/[A-Za-z_]+$|^UTC$/, {
+        message:
+          'timezone must be a valid IANA timezone (e.g., America/New_York, Europe/London, UTC)',
+      })
+      .optional(),
+  })
+  .merge(deviceConnectionSchema)
+  .refine(
+    (data) => {
+      if (data.fromDate && data.toDate) {
+        return data.fromDate <= data.toDate;
+      }
+      return true;
+    },
+    {
+      message: 'fromDate must be before or equal to toDate',
+      path: ['fromDate'],
+    }
+  );
+
 // Request body for updating user name
 export const updateUserSchema = z.object({
   name: z
@@ -152,6 +197,9 @@ export type DeviceConnectionParams = z.infer<
 >;
 export type GetAttendancesQuery = z.infer<
   typeof getAttendancesSchema
+>;
+export type GetUniqueAttendancesQuery = z.infer<
+  typeof getUniqueAttendancesSchema
 >;
 export type UpdateUserBody = z.infer<
   typeof updateUserSchema

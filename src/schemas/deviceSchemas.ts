@@ -205,14 +205,12 @@
  *           example: "25-06-07"
  *         checkIn:
  *           type: string
- *           format: date-time
- *           description: First attendance record time for the day
- *           example: "2025-06-07T08:30:00.000Z"
+ *           description: First attendance record time for the day (ISO timestamp or HH:mm:ss if timezone provided)
+ *           example: "08:30:00"
  *         checkOut:
  *           type: string
- *           format: date-time
- *           description: Last attendance record time for the day
- *           example: "2025-06-07T17:30:00.000Z"
+ *           description: Last attendance record time for the day (ISO timestamp or HH:mm:ss if timezone provided)
+ *           example: "17:30:00"
  *
  *     UniqueAttendancesResponse:
  *       type: object
