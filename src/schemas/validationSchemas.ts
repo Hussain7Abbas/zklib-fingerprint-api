@@ -46,24 +46,55 @@ import { z } from 'zod';
  *           description: Work code
  */
 
-// Query parameters for attendance filtering
+// Device connection parameters (can be used in body or query)
+export const deviceConnectionSchema = z.object({
+  ip: z
+    .string()
+    .ip({ message: 'ip must be a valid IP address' })
+    .optional(),
+  port: z
+    .union([z.string(), z.number()])
+    .transform((val) =>
+      typeof val === 'string'
+        ? Number.parseInt(val, 10)
+        : val
+    )
+    .refine(
+      (val) =>
+        !Number.isNaN(val) && val > 0 && val <= 65535,
+      {
+        message:
+          'port must be a valid port number (1-65535)',
+      }
+    )
+    .optional(),
+});
+
+// Query parameters for attendance filtering (now includes device connection params)
 export const getAttendancesSchema = z
   .object({
     fromDate: z
       .string()
       .datetime({
-        message: 'fromDate must be a valid ISO 8601 datetime string',
+        message:
+          'fromDate must be a valid ISO 8601 datetime string',
       })
       .optional()
-      .transform((val) => (val ? new Date(val) : undefined)),
+      .transform((val) =>
+        val ? new Date(val) : undefined
+      ),
     toDate: z
       .string()
       .datetime({
-        message: 'toDate must be a valid ISO 8601 datetime string',
+        message:
+          'toDate must be a valid ISO 8601 datetime string',
       })
       .optional()
-      .transform((val) => (val ? new Date(val) : undefined)),
+      .transform((val) =>
+        val ? new Date(val) : undefined
+      ),
   })
+  .merge(deviceConnectionSchema)
   .refine(
     (data) => {
       if (data.fromDate && data.toDate) {
@@ -116,7 +147,14 @@ export const apiResponseSchema = z.object({
 });
 
 // Type exports for TypeScript
-export type GetAttendancesQuery = z.infer<typeof getAttendancesSchema>;
-export type UpdateUserBody = z.infer<typeof updateUserSchema>;
+export type DeviceConnectionParams = z.infer<
+  typeof deviceConnectionSchema
+>;
+export type GetAttendancesQuery = z.infer<
+  typeof getAttendancesSchema
+>;
+export type UpdateUserBody = z.infer<
+  typeof updateUserSchema
+>;
 export type UserParams = z.infer<typeof userParamsSchema>;
 export type ApiResponse = z.infer<typeof apiResponseSchema>;

@@ -37,12 +37,7 @@ declare module 'node-zklib' {
   }
 
   export default class ZKLib {
-    constructor(
-      ip: string,
-      port: number,
-      timeout: number,
-      inport: number
-    );
+    constructor(ip: string, port: number, timeout: number, inport: number);
 
     createSocket(): Promise<void>;
     disconnect(): Promise<void>;
@@ -58,8 +53,8 @@ declare module 'node-zklib' {
     ): Promise<void>;
     getAttendances(): Promise<ZKAttendancesResponse>;
     clearAttendanceLog(): Promise<void>;
-    getRealTimeLogs(
-      callback: (data: ZKRealTimeLogRaw) => void
-    ): Promise<void>;
+    getRealTimeLogs(callback: (data: ZKRealTimeLogRaw) => void): Promise<void>;
+    disableDevice(): Promise<void>;
+    enableDevice(): Promise<void>;
   }
 }

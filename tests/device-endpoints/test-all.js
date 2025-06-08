@@ -15,7 +15,7 @@ const testFiles = [
   'test-device-info.js',
   'test-users.js',
   'test-attendances.js',
-  'test-device-control.js'
+  'test-device-control.js',
   // Note: test-realtime-logs.js is excluded as it requires manual interaction
 ];
 
@@ -41,7 +41,7 @@ function runTest(testFile) {
   return new Promise((resolve, reject) => {
     const testPath = path.join(__dirname, testFile);
     const child = spawn('node', [testPath], {
-      stdio: 'inherit'
+      stdio: 'inherit',
     });
 
     child.on('close', (code) => {
@@ -119,4 +119,4 @@ async function runAllTests() {
 }
 
 // Run all tests
-runAllTests().catch(console.error); 
+runAllTests().catch(console.error);

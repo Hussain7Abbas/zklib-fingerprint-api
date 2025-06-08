@@ -23,9 +23,9 @@ async function testRealTimeLogs() {
         method: 'GET',
         headers: {
           Accept: 'text/event-stream',
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
         },
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -81,7 +81,6 @@ async function testRealTimeLogs() {
       } finally {
         reader.releaseLock();
       }
-
     } catch (fetchError) {
       if (fetchError.name === 'AbortError') {
         console.log('⏰ Real-time logs test timed out after 30 seconds');
@@ -105,7 +104,6 @@ async function testRealTimeLogs() {
     console.log(`   Data format: ${hasReceivedData ? '✅ Valid' : '⚠️  No data to validate'}`);
 
     console.log('\n🎉 Real-time logs test completed!');
-
   } catch (error) {
     console.log('❌ Test failed with error:');
     console.log(`   ${error.message}\n`);
@@ -113,4 +111,4 @@ async function testRealTimeLogs() {
 }
 
 // Run the test
-testRealTimeLogs().catch(console.error); 
+testRealTimeLogs().catch(console.error);

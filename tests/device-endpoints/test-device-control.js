@@ -10,7 +10,7 @@ async function testDeviceControl() {
     console.log('1. Testing POST /disable');
     const disableResponse = await fetch(`${BASE_URL}/disable`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
     const disableData = await disableResponse.json();
 
@@ -24,13 +24,13 @@ async function testDeviceControl() {
     }
 
     // Wait a moment
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Test enabling device
     console.log('\n2. Testing POST /enable');
     const enableResponse = await fetch(`${BASE_URL}/enable`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
     const enableData = await enableResponse.json();
 
@@ -46,11 +46,11 @@ async function testDeviceControl() {
     // Test if device is responsive after enable/disable cycle
     console.log('\n3. Testing device responsiveness after enable/disable cycle');
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const testResponse = await fetch(`${BASE_URL}/info`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
     const testData = await testResponse.json();
 
@@ -67,7 +67,6 @@ async function testDeviceControl() {
     console.log(`   Enable: ${JSON.stringify(enableData, null, 2)}`);
 
     console.log('\n🎉 Device control endpoints test completed!');
-
   } catch (error) {
     console.log('❌ Test failed with error:');
     console.log(`   ${error.message}\n`);
@@ -75,4 +74,4 @@ async function testDeviceControl() {
 }
 
 // Run the test
-testDeviceControl().catch(console.error); 
+testDeviceControl().catch(console.error);

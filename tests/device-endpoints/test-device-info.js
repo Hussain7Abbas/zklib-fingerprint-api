@@ -9,7 +9,7 @@ async function testDeviceInfo() {
     console.log('Testing GET /info');
     const response = await fetch(`${BASE_URL}/info`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
     const data = await response.json();
 
@@ -23,14 +23,13 @@ async function testDeviceInfo() {
 
       // Validate response structure
       const requiredFields = ['userCounts', 'logCounts', 'logCapacity'];
-      const missingFields = requiredFields.filter(field => !(field in data.data));
+      const missingFields = requiredFields.filter((field) => !(field in data.data));
 
       if (missingFields.length === 0) {
         console.log('✅ Response structure is correct');
       } else {
         console.log(`⚠️  Missing fields: ${missingFields.join(', ')}`);
       }
-
     } else {
       console.log('❌ Device info endpoint failed');
       console.log(`   Status: ${response.status}`);
@@ -38,7 +37,6 @@ async function testDeviceInfo() {
     }
 
     console.log('🎉 Device info test completed!');
-
   } catch (error) {
     console.log('❌ Test failed with error:');
     console.log(`   ${error.message}\n`);
@@ -46,4 +44,4 @@ async function testDeviceInfo() {
 }
 
 // Run the test
-testDeviceInfo().catch(console.error); 
+testDeviceInfo().catch(console.error);

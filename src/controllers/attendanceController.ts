@@ -1,10 +1,10 @@
 import dayjs from 'dayjs';
-import type {
-  NextFunction,
-  Request,
-  Response,
-} from 'express';
-import { getAttendancesSchema } from '../schemas/validationSchemas';
+import type { NextFunction, Request, Response } from 'express';
+import {
+  type DeviceConnectionParams,
+  deviceConnectionSchema,
+  getAttendancesSchema,
+} from '../schemas/validationSchemas';
 import { ZKService } from '../services/zkService';
 
 /**
@@ -24,6 +24,29 @@ export class AttendanceController {
       Number.parseInt(process.env.ZK_TIMEOUT || '5000'),
       Number.parseInt(process.env.ZK_INPORT || '5200')
     );
+  }
+
+  /**
+   * Extract device connection parameters from request
+   */
+  private getDeviceParams(req: Request): DeviceConnectionParams {
+    // Try to get params from query first, then from body
+    const params = { ...req.query, ...req.body };
+    const result = deviceConnectionSchema.safeParse(params);
+
+    if (result.success) {
+      return result.data;
+    }
+
+    // If validation fails, return empty object (will use defaults)
+    return {};
+  }
+
+  /**
+   * Create ZK service instance with request params or defaults
+   */
+  private createZKService(deviceParams: DeviceConnectionParams): ZKService {
+    return ZKService.createWithConnection(deviceParams.ip, deviceParams.port);
   }
 
   /**
@@ -47,6 +70,16 @@ export class AttendanceController {
    *           format: date-time
    *         description: End date for filtering attendances (ISO 8601 format)
    *         example: "2025-12-31T23:59:59.999Z"
+   *       - in: query
+   *         name: ip
+   *         schema:
+   *           type: string
+   *         description: Device IP address (optional, defaults to ZK_DEVICE_IP env var)
+   *       - in: query
+   *         name: port
+   *         schema:
+   *           type: number
+   *         description: Device port (optional, defaults to ZK_DEVICE_PORT env var)
    *     responses:
    *       200:
    *         description: Successfully retrieved attendances
@@ -82,15 +115,10 @@ export class AttendanceController {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  async getAttendances(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  async getAttendances(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Validate query parameters
-      const queryValidation =
-        getAttendancesSchema.safeParse(req.query);
+      const queryValidation = getAttendancesSchema.safeParse(req.query);
       if (!queryValidation.success) {
         res.status(400).json({
           success: false,
@@ -104,25 +132,18 @@ export class AttendanceController {
         return;
       }
 
-      const { fromDate, toDate } = queryValidation.data;
+      const { fromDate, toDate, ip, port } = queryValidation.data;
+      const zkService = this.createZKService({ ip, port });
 
-      await this.zkService.connect();
-      const attendances =
-        await this.zkService.getAttendances(
-          fromDate,
-          toDate
-        );
-      await this.zkService.disconnect();
+      await zkService.connect();
+      const attendances = await zkService.getAttendances(fromDate, toDate);
+      await zkService.disconnect();
 
       // Format the response data
-      const formattedAttendances = attendances.map(
-        (attendance) => ({
-          ...attendance,
-          attTime: dayjs(
-            attendance.recordTime
-          ).toISOString(),
-        })
-      );
+      const formattedAttendances = attendances.map((attendance) => ({
+        ...attendance,
+        attTime: dayjs(attendance.recordTime).toISOString(),
+      }));
 
       res.status(200).json({
         success: true,
@@ -138,7 +159,6 @@ export class AttendanceController {
         },
       });
     } catch (error) {
-      await this.zkService.disconnect();
       next(error);
     }
   }
@@ -164,6 +184,16 @@ export class AttendanceController {
    *           format: date-time
    *         description: End date for filtering attendances (ISO 8601 format)
    *         example: "2025-12-31T23:59:59.999Z"
+   *       - in: query
+   *         name: ip
+   *         schema:
+   *           type: string
+   *         description: Device IP address (optional, defaults to ZK_DEVICE_IP env var)
+   *       - in: query
+   *         name: port
+   *         schema:
+   *           type: number
+   *         description: Device port (optional, defaults to ZK_DEVICE_PORT env var)
    *     responses:
    *       200:
    *         description: Successfully retrieved attendance summary
@@ -199,15 +229,10 @@ export class AttendanceController {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  async getAttendanceSummary(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  async getAttendanceSummary(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Validate query parameters
-      const queryValidation =
-        getAttendancesSchema.safeParse(req.query);
+      const queryValidation = getAttendancesSchema.safeParse(req.query);
       if (!queryValidation.success) {
         res.status(400).json({
           success: false,
@@ -221,36 +246,27 @@ export class AttendanceController {
         return;
       }
 
-      const { fromDate, toDate } = queryValidation.data;
+      const { fromDate, toDate, ip, port } = queryValidation.data;
+      const zkService = this.createZKService({ ip, port });
 
-      await this.zkService.connect();
-      const attendances =
-        await this.zkService.getAttendances(
-          fromDate,
-          toDate
-        );
-      await this.zkService.disconnect();
+      await zkService.connect();
+      const attendances = await zkService.getAttendances(fromDate, toDate);
+      await zkService.disconnect();
 
       // Calculate summary statistics
-      const uniqueUsers = new Set(
-        attendances.map((att) => att.deviceUserId)
-      ).size;
+      const uniqueUsers = new Set(attendances.map((att) => att.deviceUserId)).size;
 
       // Group attendances by date
       const attendancesByDate = attendances.reduce(
         (acc, attendance) => {
-          const date = dayjs(attendance.recordTime).format(
-            'YYYY-MM-DD'
-          );
+          const date = dayjs(attendance.recordTime).format('YYYY-MM-DD');
           acc[date] = (acc[date] || 0) + 1;
           return acc;
         },
         {} as Record<string, number>
       );
 
-      const attendancesByDateArray = Object.entries(
-        attendancesByDate
-      )
+      const attendancesByDateArray = Object.entries(attendancesByDate)
         .map(([date, count]) => ({ date, count }))
         .sort((a, b) => a.date.localeCompare(b.date));
 
@@ -271,7 +287,6 @@ export class AttendanceController {
         },
       });
     } catch (error) {
-      await this.zkService.disconnect();
       next(error);
     }
   }
@@ -282,6 +297,31 @@ export class AttendanceController {
    *   delete:
    *     summary: Clear all attendance logs from device
    *     tags: [Attendances]
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               ip:
+   *                 type: string
+   *                 description: Device IP address (optional, defaults to ZK_DEVICE_IP env var)
+   *                 example: "192.168.1.201"
+   *               port:
+   *                 type: number
+   *                 description: Device port (optional, defaults to ZK_DEVICE_PORT env var)
+   *                 example: 4370
+   *     parameters:
+   *       - in: query
+   *         name: ip
+   *         schema:
+   *           type: string
+   *         description: Device IP address (optional, defaults to ZK_DEVICE_IP env var)
+   *       - in: query
+   *         name: port
+   *         schema:
+   *           type: number
+   *         description: Device port (optional, defaults to ZK_DEVICE_PORT env var)
    *     responses:
    *       200:
    *         description: Attendance logs successfully cleared
@@ -299,22 +339,20 @@ export class AttendanceController {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  async clearAttendanceLogs(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  async clearAttendanceLogs(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await this.zkService.connect();
-      await this.zkService.clearAttendanceLogs();
-      await this.zkService.disconnect();
+      const deviceParams = this.getDeviceParams(req);
+      const zkService = this.createZKService(deviceParams);
+
+      await zkService.connect();
+      await zkService.clearAttendanceLogs();
+      await zkService.disconnect();
 
       res.status(200).json({
         success: true,
         message: 'Attendance logs successfully cleared',
       });
     } catch (error) {
-      await this.zkService.disconnect();
       next(error);
     }
   }

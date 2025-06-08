@@ -1,8 +1,5 @@
-import type {
-  NextFunction,
-  Request,
-  Response,
-} from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import { type DeviceConnectionParams, deviceConnectionSchema } from '../schemas/validationSchemas';
 import { ZKService } from '../services/zkService';
 
 /**
@@ -25,11 +22,45 @@ export class UserController {
   }
 
   /**
+   * Extract device connection parameters from request
+   */
+  private getDeviceParams(req: Request): DeviceConnectionParams {
+    // Try to get params from query first, then from body
+    const params = { ...req.query, ...req.body };
+    const result = deviceConnectionSchema.safeParse(params);
+
+    if (result.success) {
+      return result.data;
+    }
+
+    // If validation fails, return empty object (will use defaults)
+    return {};
+  }
+
+  /**
+   * Create ZK service instance with request params or defaults
+   */
+  private createZKService(deviceParams: DeviceConnectionParams): ZKService {
+    return ZKService.createWithConnection(deviceParams.ip, deviceParams.port);
+  }
+
+  /**
    * @swagger
    * /api/users:
    *   get:
    *     summary: Get all users from fingerprint device
    *     tags: [Users]
+   *     parameters:
+   *       - in: query
+   *         name: ip
+   *         schema:
+   *           type: string
+   *         description: Device IP address (optional, defaults to ZK_DEVICE_IP env var)
+   *       - in: query
+   *         name: port
+   *         schema:
+   *           type: number
+   *         description: Device port (optional, defaults to ZK_DEVICE_PORT env var)
    *     responses:
    *       200:
    *         description: Successfully retrieved all users
@@ -61,15 +92,14 @@ export class UserController {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  async getAllUsers(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  async getAllUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await this.zkService.connect();
-      const users = await this.zkService.getUsers();
-      await this.zkService.disconnect();
+      const deviceParams = this.getDeviceParams(req);
+      const zkService = this.createZKService(deviceParams);
+
+      await zkService.connect();
+      const users = await zkService.getUsers();
+      await zkService.disconnect();
 
       res.status(200).json({
         success: true,
@@ -79,7 +109,6 @@ export class UserController {
         },
       });
     } catch (error) {
-      await this.zkService.disconnect();
       next(error);
     }
   }

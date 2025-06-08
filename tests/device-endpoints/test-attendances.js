@@ -10,7 +10,7 @@ async function testAttendances() {
     console.log('1. Testing GET /attendances');
     const getResponse = await fetch(`${BASE_URL}/attendances`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
     const getData = await getResponse.json();
 
@@ -20,13 +20,17 @@ async function testAttendances() {
 
       if (getData.data.length > 0) {
         getData.data.forEach((record, index) => {
-          console.log(`   ${index + 1}. User: ${record.deviceUserId}, Time: ${record.recordTime}, SN: ${record.userSn}`);
+          console.log(
+            `   ${index + 1}. User: ${record.deviceUserId}, Time: ${record.recordTime}, SN: ${
+              record.userSn
+            }`
+          );
         });
 
         // Validate response structure
         const requiredFields = ['userSn', 'deviceUserId', 'recordTime', 'ip'];
         const firstRecord = getData.data[0];
-        const missingFields = requiredFields.filter(field => !(field in firstRecord));
+        const missingFields = requiredFields.filter((field) => !(field in firstRecord));
 
         if (missingFields.length === 0) {
           console.log('✅ Attendance data structure is correct');
@@ -38,7 +42,6 @@ async function testAttendances() {
       }
 
       console.log(`\n📋 Raw Response: ${JSON.stringify(getData, null, 2)}\n`);
-
     } else {
       console.log('❌ Get attendances endpoint failed');
       console.log(`   Status: ${getResponse.status}`);
@@ -50,15 +53,20 @@ async function testAttendances() {
     const today = new Date().toISOString();
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    const filterResponse = await fetch(`${BASE_URL}/attendances?fromDate=${yesterday}&toDate=${today}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const filterResponse = await fetch(
+      `${BASE_URL}/attendances?fromDate=${yesterday}&toDate=${today}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
     const filterData = await filterResponse.json();
 
     if (filterResponse.ok && filterData.success) {
       console.log('✅ Date filtering working');
-      console.log(`   Found ${filterData.meta.total} records for date range ${yesterday} to ${today}`);
+      console.log(
+        `   Found ${filterData.meta.total} records for date range ${yesterday} to ${today}`
+      );
     } else {
       console.log('❌ Date filtering failed');
       console.log(`   Error: ${JSON.stringify(filterData, null, 2)}`);
@@ -68,7 +76,7 @@ async function testAttendances() {
     console.log('\n3. Testing GET /attendances/summary');
     const summaryResponse = await fetch(`${BASE_URL}/attendances/summary`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
     const summaryData = await summaryResponse.json();
 
@@ -114,7 +122,6 @@ async function testAttendances() {
     console.log('   💡 To test clearing, uncomment the code in the test file');
 
     console.log('\n🎉 Attendance endpoints test completed!');
-
   } catch (error) {
     console.log('❌ Test failed with error:');
     console.log(`   ${error.message}\n`);
@@ -122,4 +129,4 @@ async function testAttendances() {
 }
 
 // Run the test
-testAttendances().catch(console.error); 
+testAttendances().catch(console.error);

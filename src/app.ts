@@ -9,8 +9,8 @@ import swaggerUiExpress from 'swagger-ui-express';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
 import attendanceRoutes from './routes/attendanceRoutes';
-import userRoutes from './routes/userRoutes';
 import deviceRoutes from './routes/deviceRoutes';
+import userRoutes from './routes/userRoutes';
 
 // Load environment variables
 dotenv.config();

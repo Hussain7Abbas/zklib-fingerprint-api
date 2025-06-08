@@ -10,7 +10,7 @@ async function testConnection() {
     console.log('1. Testing POST /connect');
     const connectResponse = await fetch(`${BASE_URL}/connect`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
     const connectData = await connectResponse.json();
 
@@ -24,13 +24,13 @@ async function testConnection() {
     }
 
     // Wait a moment
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Test Disconnect
     console.log('2. Testing POST /disconnect');
     const disconnectResponse = await fetch(`${BASE_URL}/disconnect`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
     const disconnectData = await disconnectResponse.json();
 
@@ -43,7 +43,6 @@ async function testConnection() {
     }
 
     console.log('🎉 Connection endpoints test completed!');
-
   } catch (error) {
     console.log('❌ Test failed with error:');
     console.log(`   ${error.message}\n`);
@@ -51,4 +50,4 @@ async function testConnection() {
 }
 
 // Run the test
-testConnection().catch(console.error); 
+testConnection().catch(console.error);

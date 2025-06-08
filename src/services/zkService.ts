@@ -53,12 +53,7 @@ export class ZKService {
   private timeout: number;
   private inport: number;
 
-  constructor(
-    ip = '192.168.1.201',
-    port = 4370,
-    timeout = 5000,
-    inport = 5200
-  ) {
+  constructor(ip = '192.168.1.201', port = 4370, timeout = 5000, inport = 5200) {
     this.ip = ip;
     this.port = port;
     this.timeout = timeout;
@@ -66,16 +61,41 @@ export class ZKService {
   }
 
   /**
+   * Create a new ZKService instance with custom IP and port
+   */
+  static createWithConnection(
+    ip?: string,
+    port?: number,
+    timeout = 5000,
+    inport = 5200
+  ): ZKService {
+    const defaultIp = process.env.ZK_DEVICE_IP || '192.168.1.201';
+    const defaultPort = Number.parseInt(process.env.ZK_DEVICE_PORT || '4370');
+
+    return new ZKService(ip || defaultIp, port || defaultPort, timeout, inport);
+  }
+
+  /**
+   * Update connection parameters
+   */
+  updateConnection(ip?: string, port?: number, timeout?: number, inport?: number): void {
+    if (ip) this.ip = ip;
+    if (port) this.port = port;
+    if (timeout) this.timeout = timeout;
+    if (inport) this.inport = inport;
+
+    // If instance exists, disconnect it as we need to create a new one with updated params
+    if (this.zkInstance) {
+      this.zkInstance = null;
+    }
+  }
+
+  /**
    * Create socket connection to ZK device
    */
   async connect(): Promise<void> {
     try {
-      this.zkInstance = new ZKLib(
-        this.ip,
-        this.port,
-        this.timeout,
-        this.inport
-      );
+      this.zkInstance = new ZKLib(this.ip, this.port, this.timeout, this.inport);
       console.log('✅', {
         ip: this.ip,
         port: this.port,
@@ -83,17 +103,10 @@ export class ZKService {
         inport: this.inport,
       });
       await this.zkInstance.createSocket();
-      console.log(
-        `Connected to ZK device at ${this.ip}:${this.port}`
-      );
+      console.log(`Connected to ZK device at ${this.ip}:${this.port}`);
     } catch (error) {
-      console.error(
-        'Failed to connect to ZK device:',
-        error
-      );
-      throw new Error(
-        `Failed to connect to ZK device: ${error}`
-      );
+      console.error('Failed to connect to ZK device:', error);
+      throw new Error(`Failed to connect to ZK device: ${error}`);
     }
   }
 
@@ -107,10 +120,7 @@ export class ZKService {
         this.zkInstance = null;
         console.log('Disconnected from ZK device');
       } catch (error) {
-        console.error(
-          'Error disconnecting from ZK device:',
-          error
-        );
+        console.error('Error disconnecting from ZK device:', error);
       }
     }
   }
@@ -128,9 +138,7 @@ export class ZKService {
         logCapacity: rawInfo.logCapacity || 0,
       };
     } catch (error) {
-      throw new Error(
-        `Failed to get device info: ${error}`
-      );
+      throw new Error(`Failed to get device info: ${error}`);
     }
   }
 
@@ -157,40 +165,25 @@ export class ZKService {
   /**
    * Get attendances from device with optional date range filtering
    */
-  async getAttendances(
-    fromDate?: Date,
-    toDate?: Date
-  ): Promise<ZKAttendance[]> {
+  async getAttendances(fromDate?: Date, toDate?: Date): Promise<ZKAttendance[]> {
     this.ensureConnected();
     try {
-      const attendances =
-        await this.zkInstance!.getAttendances();
+      const attendances = await this.zkInstance!.getAttendances();
       console.log('attendances', attendances);
 
       let filteredAttendances = attendances.data;
 
       // Filter by date range if provided
       if (fromDate || toDate) {
-        filteredAttendances = this.filterAttendancesByDate(
-          filteredAttendances,
-          fromDate,
-          toDate
-        );
+        filteredAttendances = this.filterAttendancesByDate(filteredAttendances, fromDate, toDate);
       }
 
-      console.log(
-        'filteredAttendances',
-        filteredAttendances
-      );
+      console.log('filteredAttendances', filteredAttendances);
 
       return filteredAttendances;
     } catch (error) {
       console.error('Attendance error:', error);
-      throw new Error(
-        `Failed to get attendances: ${JSON.stringify(
-          error
-        )}`
-      );
+      throw new Error(`Failed to get attendances: ${JSON.stringify(error)}`);
     }
   }
 
@@ -202,25 +195,19 @@ export class ZKService {
     try {
       await this.zkInstance!.clearAttendanceLog();
     } catch (error) {
-      throw new Error(
-        `Failed to clear attendance logs: ${error}`
-      );
+      throw new Error(`Failed to clear attendance logs: ${error}`);
     }
   }
 
   /**
    * Get real-time logs (for monitoring)
    */
-  async getRealTimeLogs(
-    callback: (data: ZKRealTimeLog) => void
-  ): Promise<void> {
+  async getRealTimeLogs(callback: (data: ZKRealTimeLog) => void): Promise<void> {
     this.ensureConnected();
     try {
       await this.zkInstance!.getRealTimeLogs(callback);
     } catch (error) {
-      throw new Error(
-        `Failed to get real-time logs: ${error}`
-      );
+      throw new Error(`Failed to get real-time logs: ${error}`);
     }
   }
 
@@ -232,26 +219,22 @@ export class ZKService {
     fromDate?: Date,
     toDate?: Date
   ): ZKAttendanceRaw[] {
-    return attendances.filter(
-      (attendance: ZKAttendance) => {
-        const attTime = dayjs(attendance.recordTime);
-        const from = fromDate ? dayjs(fromDate) : null;
-        const to = toDate ? dayjs(toDate) : null;
+    return attendances.filter((attendance: ZKAttendance) => {
+      const attTime = dayjs(attendance.recordTime);
+      const from = fromDate ? dayjs(fromDate) : null;
+      const to = toDate ? dayjs(toDate) : null;
 
-        if (from && to) {
-          return (
-            attTime.isAfter(from) && attTime.isBefore(to)
-          );
-        }
-        if (from) {
-          return attTime.isAfter(from);
-        }
-        if (to) {
-          return attTime.isBefore(to);
-        }
-        return true;
+      if (from && to) {
+        return attTime.isAfter(from) && attTime.isBefore(to);
       }
-    );
+      if (from) {
+        return attTime.isAfter(from);
+      }
+      if (to) {
+        return attTime.isBefore(to);
+      }
+      return true;
+    });
   }
 
   /**
@@ -259,9 +242,14 @@ export class ZKService {
    */
   private ensureConnected(): void {
     if (!this.zkInstance) {
-      throw new Error(
-        'ZK device is not connected. Call connect() first.'
-      );
+      throw new Error('ZK device is not connected. Call connect() first.');
     }
+  }
+
+  /**
+   * Get the underlying ZK instance for advanced operations
+   */
+  getZKInstance(): ZKLib | null {
+    return this.zkInstance;
   }
 }
