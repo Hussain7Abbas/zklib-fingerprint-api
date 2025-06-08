@@ -1,0 +1,8 @@
+
+> zklib-fingerprint-api@1.0.0 start
+> bun run index.ts
+
+🚀 ZKLib Fingerprint API server is running on port 3000
+📖 API Documentation available at http://localhost:3000/api-docs
+🏥 Health check available at http://localhost:3000/health
+🌍 Environment: development
