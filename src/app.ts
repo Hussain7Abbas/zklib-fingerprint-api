@@ -8,6 +8,7 @@ import swaggerUiExpress from 'swagger-ui-express';
 
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
+import { AttendanceController } from './controllers/attendanceController';
 import attendanceRoutes from './routes/attendanceRoutes';
 import deviceRoutes from './routes/deviceRoutes';
 import userRoutes from './routes/userRoutes';
@@ -93,6 +94,15 @@ app.get('/health', (req, res) => {
 app.use('/api/users', userRoutes);
 app.use('/api/attendances', attendanceRoutes);
 app.use('/api/device', deviceRoutes);
+
+// Unique attendances endpoint
+const attendanceController = new AttendanceController();
+app.get(
+  '/api/attendances-unique',
+  attendanceController.getUniqueAttendances.bind(
+    attendanceController
+  )
+);
 
 // Error handling middleware
 app.use(notFoundHandler);

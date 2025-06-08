@@ -99,8 +99,8 @@ http://localhost:3000/api/device
 - **Endpoint**: `GET /attendances`
 - **Description**: Get attendance records from device
 - **Query Parameters**:
-  - `fromDate` (optional): Start date for filtering (YYYY-MM-DD)
-  - `toDate` (optional): End date for filtering (YYYY-MM-DD)
+  - `fromDate` (optional): Start date for filtering (YYYYYY-MM-DD)
+  - `toDate` (optional): End date for filtering (YYYYYY-MM-DD)
 - **Response**:
 
 ```json
@@ -108,20 +108,48 @@ http://localhost:3000/api/device
   "success": true,
   "data": [
     {
-      "userSn": 6548,
-      "deviceUserId": "2",
-      "recordTime": "2025-06-07T09:56:09.000Z",
-      "ip": "192.168.0.201"
-    },
-    {
-      "userSn": 6549,
-      "deviceUserId": "2",
-      "recordTime": "2025-06-07T09:57:09.000Z",
-      "ip": "192.168.0.201"
+      "userSn": 6550,
+      "deviceUserId": "5",
+      "username": "John Doe",
+      "recordTime": "2025-06-07T10:21:02.000Z",
+      "ip": "192.168.0.201",
+      "attTime": "2025-06-07T10:21:02.000Z"
     }
   ],
   "meta": {
-    "total": 2
+    "total": 1
+  }
+}
+```
+
+#### Get Unique Daily Attendances
+
+- **Endpoint**: `GET /attendances-unique`
+- **Description**: Get unique daily attendance records with check-in/check-out times for each user per day
+- **Query Parameters**:
+  - `fromDate` (optional): Start date for filtering (ISO 8601 format)
+  - `toDate` (optional): End date for filtering (ISO 8601 format)
+  - `ip` (optional): Device IP address (defaults to ZK_DEVICE_IP env var)
+  - `port` (optional): Device port (defaults to ZK_DEVICE_PORT env var)
+- **Response**:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "userSn": 6550,
+      "deviceUserId": "5",
+      "username": "John Doe",
+      "date": "25-06-07",
+      "checkIn": "2025-06-07T08:30:00.000Z",
+      "checkOut": "2025-06-07T17:30:00.000Z"
+    }
+  ],
+  "meta": {
+    "total": 1,
+    "fromDate": "2025-01-01T00:00:00.000Z",
+    "toDate": "2025-12-31T23:59:59.999Z"
   }
 }
 ```
@@ -213,6 +241,19 @@ interface Attendance {
   deviceUserId: string; // Device user ID
   recordTime: string; // ISO timestamp
   ip: string; // Device IP address
+}
+```
+
+### UniqueAttendance
+
+```typescript
+interface UniqueAttendance {
+  userSn: number; // User serial number
+  deviceUserId: string; // Device user ID
+  username: string; // User name
+  date: string; // Date in YYYY-MM-DD format
+  checkIn: string; // First attendance record time for the day (ISO timestamp)
+  checkOut: string; // Last attendance record time for the day (ISO timestamp)
 }
 ```
 

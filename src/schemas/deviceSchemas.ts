@@ -104,7 +104,7 @@
  *               date:
  *                 type: string
  *                 format: date
- *                 description: Date in YYYY-MM-DD format
+ *                 description: Date in YYYYYY-MM-DD format
  *                 example: "2025-06-07"
  *               count:
  *                 type: number
@@ -175,6 +175,61 @@
  *             total:
  *               type: number
  *               example: 2
+ *             fromDate:
+ *               type: string
+ *               format: date-time
+ *               example: "2025-06-07T00:00:00.000Z"
+ *             toDate:
+ *               type: string
+ *               format: date-time
+ *               example: "2025-06-08T23:59:59.999Z"
+ *
+ *     UniqueAttendance:
+ *       type: object
+ *       properties:
+ *         userSn:
+ *           type: number
+ *           description: User serial number
+ *           example: 6550
+ *         deviceUserId:
+ *           type: string
+ *           description: Device user ID
+ *           example: "5"
+ *         username:
+ *           type: string
+ *           description: User name
+ *           example: "John Doe"
+ *         date:
+ *           type: string
+ *           description: Date in YYYY-MM-DD format
+ *           example: "25-06-07"
+ *         checkIn:
+ *           type: string
+ *           format: date-time
+ *           description: First attendance record time for the day
+ *           example: "2025-06-07T08:30:00.000Z"
+ *         checkOut:
+ *           type: string
+ *           format: date-time
+ *           description: Last attendance record time for the day
+ *           example: "2025-06-07T17:30:00.000Z"
+ *
+ *     UniqueAttendancesResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         data:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/UniqueAttendance'
+ *         meta:
+ *           type: object
+ *           properties:
+ *             total:
+ *               type: number
+ *               example: 1
  *             fromDate:
  *               type: string
  *               format: date-time

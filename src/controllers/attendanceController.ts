@@ -311,7 +311,7 @@ export class AttendanceController {
       const attendancesByDate = attendances.reduce(
         (acc, attendance) => {
           const date = dayjs(attendance.recordTime).format(
-            'YYYY-MM-DD'
+            'YYYYYY-MM-DD'
           );
           acc[date] = (acc[date] || 0) + 1;
           return acc;
@@ -339,6 +339,184 @@ export class AttendanceController {
             }),
           },
           attendancesByDate: attendancesByDateArray,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/attendances-unique:
+   *   get:
+   *     summary: Get unique daily attendances with check-in/check-out times
+   *     tags: [Attendances]
+   *     description: Get attendances grouped by user and date, showing first (check-in) and last (check-out) records for each day
+   *     parameters:
+   *       - in: query
+   *         name: fromDate
+   *         schema:
+   *           type: string
+   *           format: date-time
+   *         description: Start date for filtering attendances (ISO 8601 format)
+   *         example: "2025-01-01T00:00:00.000Z"
+   *       - in: query
+   *         name: toDate
+   *         schema:
+   *           type: string
+   *           format: date-time
+   *         description: End date for filtering attendances (ISO 8601 format)
+   *         example: "2025-12-31T23:59:59.999Z"
+   *       - in: query
+   *         name: ip
+   *         schema:
+   *           type: string
+   *         description: Device IP address (optional, defaults to ZK_DEVICE_IP env var)
+   *       - in: query
+   *         name: port
+   *         schema:
+   *           type: number
+   *         description: Device port (optional, defaults to ZK_DEVICE_PORT env var)
+   *     responses:
+   *       200:
+   *         description: Successfully retrieved unique daily attendances
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/UniqueAttendancesResponse'
+   *             example:
+   *               success: true
+   *               data:
+   *                 - userSn: 6550
+   *                   deviceUserId: "5"
+   *                   username: "John Doe"
+   *                   date: "25-06-07"
+   *                   checkIn: "2025-06-07T08:30:00.000Z"
+   *                   checkOut: "2025-06-07T17:30:00.000Z"
+   *               meta:
+   *                 total: 1
+   *       400:
+   *         description: Invalid query parameters
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       500:
+   *         description: Internal server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
+  async getUniqueAttendances(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      // Validate query parameters
+      const queryValidation =
+        getAttendancesSchema.safeParse(req.query);
+      if (!queryValidation.success) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: `Invalid query parameters: ${queryValidation.error.errors
+              .map((e) => e.message)
+              .join(', ')}`,
+            statusCode: 400,
+          },
+        });
+        return;
+      }
+
+      const { fromDate, toDate, ip, port } =
+        queryValidation.data;
+      const zkService = this.createZKService({ ip, port });
+
+      await zkService.connect();
+
+      // Fetch both attendances and users
+      const users = await zkService.getUsers();
+      const attendances = await zkService.getAttendances(
+        fromDate,
+        toDate
+      );
+
+      await zkService.disconnect();
+
+      // Create a mapping object with deviceUserId as key and username as value
+      const userMapping: { [key: string]: string } = {};
+      for (const user of users) {
+        userMapping[user.userid] = user.name;
+      }
+
+      // Group attendances by user and date
+      const groupedAttendances: { [key: string]: any[] } =
+        {};
+
+      for (const attendance of attendances) {
+        const date = dayjs(attendance.recordTime).format(
+          'YYYYYY-MM-DD'
+        );
+        const key = `${attendance.deviceUserId}_${date}`;
+
+        if (!groupedAttendances[key]) {
+          groupedAttendances[key] = [];
+        }
+        groupedAttendances[key].push(attendance);
+      }
+
+      // Create unique daily attendance records
+      const uniqueAttendances = Object.keys(
+        groupedAttendances
+      ).map((key) => {
+        const [deviceUserId, date] = key.split('_');
+        const userAttendances = groupedAttendances[key];
+
+        // Sort attendances by time to get first (check-in) and last (check-out)
+        userAttendances.sort(
+          (a, b) =>
+            dayjs(a.recordTime).valueOf() -
+            dayjs(b.recordTime).valueOf()
+        );
+
+        const checkIn = userAttendances[0];
+        const checkOut =
+          userAttendances[userAttendances.length - 1];
+
+        return {
+          userSn: checkIn.userSn,
+          deviceUserId: deviceUserId,
+          username: userMapping[deviceUserId] || 'Unknown',
+          date: date,
+          checkIn: dayjs(checkIn.recordTime).toISOString(),
+          checkOut: dayjs(
+            checkOut.recordTime
+          ).toISOString(),
+        };
+      });
+
+      // Sort by date and deviceUserId for consistent ordering
+      uniqueAttendances.sort((a, b) => {
+        if (a.date !== b.date) {
+          return a.date.localeCompare(b.date);
+        }
+        return a.deviceUserId.localeCompare(b.deviceUserId);
+      });
+
+      res.status(200).json({
+        success: true,
+        data: uniqueAttendances,
+        meta: {
+          total: uniqueAttendances.length,
+          ...(fromDate && {
+            fromDate: dayjs(fromDate).toISOString(),
+          }),
+          ...(toDate && {
+            toDate: dayjs(toDate).toISOString(),
+          }),
         },
       });
     } catch (error) {

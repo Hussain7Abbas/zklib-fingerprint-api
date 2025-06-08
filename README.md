@@ -170,11 +170,12 @@ If no `ip` or `port` parameters are provided, the API will use the default value
 
 ### Attendances
 
-| Method | Endpoint                   | Description                                  | Device Params |
-| ------ | -------------------------- | -------------------------------------------- | ------------- |
-| GET    | `/api/attendances`         | Get attendances with optional date filtering | ✅ Query      |
-| GET    | `/api/attendances/summary` | Get attendance summary statistics            | ✅ Query      |
-| DELETE | `/api/attendances/clear`   | Clear all attendance logs                    | ✅ Body/Query |
+| Method | Endpoint                   | Description                                          | Device Params |
+| ------ | -------------------------- | ---------------------------------------------------- | ------------- |
+| GET    | `/api/attendances`         | Get attendances with optional date filtering         | ✅ Query      |
+| GET    | `/api/attendances-unique`  | Get unique daily attendances with check-in/check-out | ✅ Query      |
+| GET    | `/api/attendances/summary` | Get attendance summary statistics                    | ✅ Query      |
+| DELETE | `/api/attendances/clear`   | Clear all attendance logs                            | ✅ Body/Query |
 
 ## 📖 API Documentation
 
@@ -248,6 +249,35 @@ GET /api/attendances?ip=192.168.1.100&port=4370&fromDate=2024-01-01T00:00:00.000
       "verifyMethod": 1,
       "inOutMode": 1,
       "workCode": 0
+    }
+  ],
+  "meta": {
+    "total": 1,
+    "fromDate": "2024-01-01T00:00:00.000Z",
+    "toDate": "2024-12-31T23:59:59.999Z"
+  }
+}
+```
+
+### Get Unique Daily Attendances
+
+```http
+GET /api/attendances-unique?fromDate=2024-01-01T00:00:00.000Z&toDate=2024-12-31T23:59:59.999Z
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "userSn": 6550,
+      "deviceUserId": "5",
+      "username": "John Doe",
+      "date": "24-01-15",
+      "checkIn": "2024-01-15T08:30:00.000Z",
+      "checkOut": "2024-01-15T17:30:00.000Z"
     }
   ],
   "meta": {
