@@ -104,7 +104,7 @@
  *               date:
  *                 type: string
  *                 format: date
- *                 description: Date in YYYYYY-MM-DD format
+ *                 description: Date in YYYY-MM-DD format
  *                 example: "2025-06-07"
  *               count:
  *                 type: number

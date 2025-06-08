@@ -311,7 +311,7 @@ export class AttendanceController {
       const attendancesByDate = attendances.reduce(
         (acc, attendance) => {
           const date = dayjs(attendance.recordTime).format(
-            'YYYYYY-MM-DD'
+            'YYYY-MM-DD'
           );
           acc[date] = (acc[date] || 0) + 1;
           return acc;
@@ -458,7 +458,7 @@ export class AttendanceController {
 
       for (const attendance of attendances) {
         const date = dayjs(attendance.recordTime).format(
-          'YYYYYY-MM-DD'
+          'YYYY-MM-DD'
         );
         const key = `${attendance.deviceUserId}_${date}`;
 

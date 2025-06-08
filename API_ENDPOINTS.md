@@ -99,8 +99,8 @@ http://localhost:3000/api/device
 - **Endpoint**: `GET /attendances`
 - **Description**: Get attendance records from device
 - **Query Parameters**:
-  - `fromDate` (optional): Start date for filtering (YYYYYY-MM-DD)
-  - `toDate` (optional): End date for filtering (YYYYYY-MM-DD)
+  - `fromDate` (optional): Start date for filtering (YYYY-MM-DD)
+  - `toDate` (optional): End date for filtering (YYYY-MM-DD)
 - **Response**:
 
 ```json
